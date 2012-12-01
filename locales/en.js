@@ -59,5 +59,6 @@
 	"Device updated": "Device updated",
 	"Device unlinked": "Device unlinked",
 	"Recent changes": "Recent changes",
-	"Back to folder": "Back to folder"
+	"Back to folder": "Back to folder",
+	"Download folder contents": "Download folder contents"
 }
