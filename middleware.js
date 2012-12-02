@@ -106,6 +106,9 @@ module.exports = {
 
   validateLinkCode: function(req, res, next) {
     var code = req.param('code');
+    if (!code) {
+        code = req.params.code;
+    }
     if (code) {
       var valid = linkCodeProvider.isCodeValid(code);
       if (valid[0]) {

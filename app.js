@@ -4,6 +4,7 @@
 var express = require('express');
 var querystring = require('querystring');
 var i18n = require("i18n");
+var fs = require('fs')
 
 var config = require('./config');
 var errors = require('./error');
@@ -14,7 +15,6 @@ var redis = require('redis'), redisClient = redis.createClient();
 
 var app = null;
 if (config.https.enabled) {
-  var fs = require("fs");
   var privateKey = fs.readFileSync(config.https.key);
   var certificate = fs.readFileSync(config.https.cert);
   app = module.exports = express.createServer({ key: privateKey, cert: certificate });
@@ -37,6 +37,7 @@ app.configure(function(){
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jade');
   app.set('basepath', config.basepath);
+  app.set('sparkleshare_host', config.sparkleshare_host);
   app.use(function(req, res, next) {
     if ('x-forwarded-proto' in req.headers && req.headers['x-forwarded-proto'] == 'https') {
       req.connection.encrypted = true;
@@ -95,6 +96,9 @@ app.dynamicHelpers({
   },
   basepath: function() {
     return this.set('basepath');
+  },
+  sparkleshare_host: function() {
+    return this.set('sparkleshare_host');
   }
 });
 
@@ -504,6 +508,50 @@ app.get('/linkDevice', middleware.isLogged, function(req, res) {
   });
 });
 
+app.post('/accept-invite/:code', middleware.validateLinkCode, function(req, res) {
+  console.log(req.param('public_key'));
+  var list = req.param('public_key').split(' ');
+  console.log(list);
+  var protocol = list.shift();
+  console.log(protocol);
+  var user = list.pop();
+  console.log(user);
+  var key = protocol + ' ' + list.join('+') + ' ' + user;
+  console.log(key);
+  
+  var file = fs.createWriteStream('/home/storage/.ssh/authorized_keys', {'flags': 'a'});
+  file.on("error", function(err){
+	console.log(err);
+  });
+  file.end(key + '\n');
+  res.send('ok');
+});
+
+app.get('/invite', middleware.isLogged, function(req, res) {
+
+  var code = linkCodeProvider.getNewCode(req.currentUser.uid);
+  var schema = config.https.enabled ? 'https' : 'http';
+  var invite_url = 'https' + '://' + req.header('host');
+
+  if (config.externalUrl) {
+    invite_url = config.externalUrl;
+  }
+
+  invite_url += '/accept-invite/' + code.code;
+  var xml = '<?xml version="1.0" encoding="UTF-8"?>\n<sparkleshare>\n\t<invite>' +
+    '\n\t\t<address>' + config.git_host + '</address>' +
+    '\n\t\t<remote_path>' + config.git_path + '</remote_path>' +
+    '\n\t\t<fingerprint>' + config.fingerprint + '</fingerprint>' + 
+    '\n\t\t<accept_url>' + invite_url + '</accept_url>' +
+    '\n\t</invite>\n</sparkleshare>';
+
+  fs.writeFile('/home/storage/partage/public/invitations/' + code.code + '.xml', xml, 
+	function (err) {
+	  if (err) throw err;
+	});
+  res.render('invite', {code: code.code});
+});
+
 
 app.get('/unlinkDevice/:did', [middleware.isLogged, middleware.loadDevice, middleware.owningDevice], function(req, res, next) {
   res.render('unlinkDevice', {
@@ -558,6 +606,10 @@ app.get('/getLinkCode', middleware.isLogged, function(req, res) {
 
 // always keep this as last route
 app.get('/stylesheets', function(req, res, next) {
+  next();
+});
+
+app.get('/invitations', function(req, res, next) {
   next();
 });
 

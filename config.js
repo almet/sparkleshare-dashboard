@@ -1,7 +1,7 @@
 exports.sessionSecret = 'qsdlkjqsldk45qd8d4@';
 
 exports.folders = [
-  { type: 'git', name: 'Public GIT folder', path: '/home/storage/reseaugrappe/', pub: true },
+  { type: 'git', name: 'docs du grappe', path: '/home/storage/reseaugrappe/', pub: false },
 ];
 
 exports.listen = {
@@ -35,3 +35,8 @@ exports.backend = {
     'bin': 'git'
   }
 };
+
+exports.fingerprint = 'b1:ed:b6:dd:a4:ee:db:d6:ed:67:fa:18:4b:b8:67:4b';
+exports.git_host = 'ssh://storage@reseaugrappe.org:12345'
+exports.git_path = '/home/storage/reseaugrappe'
+exports.sparkleshare_host = 'sparkleshare://partage.reseaugrappe.org'
